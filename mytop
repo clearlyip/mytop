@@ -215,7 +215,8 @@ GetOptions(
     "long_nums!"        => \$config{long_nums},
     "mode|m=s"          => \$config{mode},
     "slow=i"            => \$config{slow},
-    "sort=s"            => \$config{sort}
+    "sort=s"            => \$config{sort},
+	"full!"				=> \$config{full}
 );
 
 ## User may have put the port with the host.
@@ -1159,20 +1160,20 @@ sub GetData() {
     ##
 
     #my $sz = $width - 52;
-    my @sz   = ( 9, 9, 15, 10, 10, 6, 8 );
+    my @sz   = ( 9, 9, 15, 10, 10, 6, 16 );
     my $used = scalar(@sz) + Sum(@sz);
     my $free = $width - $used;
 
     print BOLD() if ($HAS_COLOR);
 
-    printf "%9s %9s %15s %10s %10s %6s %8s %-${free}s\n",
+    printf "%-9s %-9s %-15s %-10s %-10s %-6s %-16s %-${free}s\n",
       'Id', 'User', 'Host/IP', 'DB', 'Time', 'Cmd', 'State', 'Query';
 
     print RESET() if ($HAS_COLOR);
 
     ##      Id User Host DB
-    printf "%9s %9s %15s %10s %10s %6s %8s %-${free}s\n",
-      '--', '----', '-------', '--', '----', '---', '-----', '----------';
+    printf "%-9s %-9s %-15s %-10s %-10s %-6s %-16s %-${free}s\n",
+      '--', '----', '-------', '--', '----', '---', '-------------', '----------';
 
     $lines_left -= 2;
 
@@ -1275,14 +1276,18 @@ sub GetData() {
         next if ( $thread->{Host}  !~ $config{filter_host} );
         next if ( $thread->{State} !~ $config{filter_state} );
 
-        $thread->{State} = trim( sprintf( "%8.8s", $thread->{State} ) );
+        $thread->{State} = trim( sprintf( "%16.16s", $thread->{State} ) );
 
         # Otherwise, print.
 
         my $smInfo;
 
         if ( $thread->{Info} ) {
-            $smInfo = substr $thread->{Info}, 0, $free;
+			if ( $config{full} ) {
+	            $smInfo = $thread->{Info};
+			} else {
+	            $smInfo = substr $thread->{Info}, 0, $free;
+			}
         }
         else {
             $smInfo = "";
@@ -1297,7 +1302,7 @@ sub GetData() {
         }
 
         printf
-          "%9d %9.9s %15.15s %10.10s %10d %6.6s %8.8s %-${free}.${free}s\n",
+          "%9d %-9.9s %-15.15s %-10.10s %10d %-6.6s %-16.16s %-${free}.${free}s\n",
           $thread->{Id},   $thread->{User},    $thread->{Host},  $thread->{db},
           $thread->{Time}, $thread->{Command}, $thread->{State}, $smInfo;
 
