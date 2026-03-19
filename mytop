@@ -143,7 +143,7 @@ my %config = (
     header       => 1,
     help         => 0,
     host         => 'localhost',
-    idle         => 2,
+    idle         => 0,
     long         => 120,
     long_nums    => 0,
     mode         => 'top',
@@ -154,7 +154,8 @@ my %config = (
     slow         => 10,            # slow query time
     socket       => '',
     sort         => 1,             # default or reverse sort ("s")
-    user         => 'root'
+    user         => 'root',
+	full         => 0
 );
 
 my %qcache    = ();    ## The query cache--used for full query info support.
@@ -216,8 +217,10 @@ GetOptions(
     "mode|m=s"          => \$config{mode},
     "slow=i"            => \$config{slow},
     "sort=s"            => \$config{sort},
-	"full!"				=> \$config{full}
+	"full|f!"           => \$config{full}
 );
+
+
 
 ## User may have put the port with the host.
 
@@ -1281,16 +1284,16 @@ sub GetData() {
         # Otherwise, print.
 
         my $smInfo;
-
+		my @query_arr;
         if ( $thread->{Info} ) {
-			if ( $config{full} ) {
-	            $smInfo = $thread->{Info};
+			if ( length($thread->{Info}) <= $free ) {
+				$query_arr[0] = $thread->{Info};
 			} else {
-	            $smInfo = substr $thread->{Info}, 0, $free;
+				@query_arr = ($thread->{Info} =~ /(.{1,$free})/g);
 			}
         }
         else {
-            $smInfo = "";
+            $query_arr[0] = '';
         }
 
         if ($HAS_COLOR) {
@@ -1300,11 +1303,16 @@ sub GetData() {
             print BOLD()    if $thread->{Time} > $config{slow};
             print MAGENTA() if $thread->{Time} > $config{long};
         }
-
         printf
-          "%9d %-9.9s %-15.15s %-10.10s %10d %-6.6s %-16.16s %-${free}.${free}s\n",
+          "%9d %-9.9s %-15.15s %-10.10s %10d %-6.6s %-16.16s %-s\n",
           $thread->{Id},   $thread->{User},    $thread->{Host},  $thread->{db},
-          $thread->{Time}, $thread->{Command}, $thread->{State}, $smInfo;
+          $thread->{Time}, $thread->{Command}, $thread->{State}, $query_arr[0];
+		if ( $config{full} ) {
+			my $rows = scalar @query_arr;
+			for (my $i = 1; $i < $rows; $i++) {
+				printf "%${used}s%-s\n", '', $query_arr[$i];
+			}
+		}
 
         print RESET() if $HAS_COLOR;
 
